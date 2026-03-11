@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
     const delivery = db.prepare(`
       SELECT wd.*, w.id as w_id, w.name as w_name, w.url as w_url, w.secret as w_secret,
-             w.events as w_events, w.enabled as w_enabled, w.workspace_id as w_workspace_id
+             w.events as w_events, w.custom_headers as w_custom_headers, w.enabled as w_enabled, w.workspace_id as w_workspace_id
       FROM webhook_deliveries wd
       JOIN webhooks w ON w.id = wd.webhook_id AND w.workspace_id = wd.workspace_id
       WHERE wd.id = ? AND wd.workspace_id = ?
@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       url: delivery.w_url,
       secret: delivery.w_secret,
       events: delivery.w_events,
+      custom_headers: delivery.w_custom_headers,
       enabled: delivery.w_enabled,
       workspace_id: delivery.w_workspace_id,
     }

@@ -340,6 +340,18 @@ export async function PUT(
     // Broadcast to SSE clients
     eventBus.broadcast('task.updated', parsedTask);
 
+    // Broadcast status change event for webhooks (e.g. MC → OpenClaw wake)
+    if (status !== undefined && currentTask && status !== currentTask.status) {
+      eventBus.broadcast('task.status_changed', {
+        taskId: parsedTask.id,
+        title: parsedTask.title,
+        oldStatus: currentTask.status,
+        newStatus: status,
+        assignedTo: parsedTask.assigned_to,
+        projectId: parsedTask.project_id,
+      });
+    }
+
     return NextResponse.json({ task: parsedTask });
   } catch (error) {
     logger.error({ err: error }, 'PUT /api/tasks/[id] error');
