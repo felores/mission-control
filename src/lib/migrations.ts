@@ -678,6 +678,29 @@ const migrations: Migration[] = [
     }
   },
   {
+    id: '025_calibration_scores',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS calibration_scores (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          evaluator TEXT NOT NULL,
+          task_type TEXT NOT NULL,
+          score REAL DEFAULT 0,
+          total_interactions INTEGER DEFAULT 0,
+          last_interaction_at INTEGER,
+          last_feedback_text TEXT,
+          updated_at INTEGER DEFAULT (unixepoch()),
+          workspace_id INTEGER DEFAULT 1,
+          UNIQUE(evaluator, task_type)
+        );
+
+        INSERT OR IGNORE INTO calibration_scores (evaluator, task_type) VALUES
+          ('fred','research'),('fred','copy'),('fred','design'),
+          ('fred','dev'),('fred','sales'),('claw','quality');
+      `)
+    }
+  },
+  {
     id: '024_projects_support',
     up: (db) => {
       db.exec(`
