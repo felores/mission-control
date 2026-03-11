@@ -39,8 +39,12 @@ export async function POST(
       customMessage ||
       `Wake up check-in for ${agent.name}. Please review assigned tasks and notifications.`
 
+    // Extract OpenClaw agent ID from session_key (format: agent:{id}:main)
+    const sessionKeyParts = agent.session_key.split(':')
+    const openclawAgentId = sessionKeyParts.length >= 2 ? sessionKeyParts[1] : agent.name
+
     const { stdout, stderr } = await runOpenClaw(
-      ['gateway', 'sessions_send', '--session', agent.session_key, '--message', message],
+      ['agent', '--agent', openclawAgentId, '--message', message],
       { timeoutMs: 10000 }
     )
 

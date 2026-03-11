@@ -8,6 +8,7 @@ interface Webhook {
   url: string
   secret: string | null
   events: string // JSON array
+  custom_headers: string | null // JSON object of extra headers
   enabled: number
   workspace_id?: number
   consecutive_failures?: number
@@ -191,6 +192,14 @@ async function deliverWebhook(
     'X-MC-Event': eventType,
   }
 
+  // Custom headers (e.g. Authorization for OpenClaw hooks)
+  if (webhook.custom_headers) {
+    try {
+      const custom = JSON.parse(webhook.custom_headers)
+      Object.assign(headers, custom)
+    } catch { /* ignore malformed */ }
+  }
+
   // HMAC signature if secret is configured
   if (webhook.secret) {
     const sig = createHmac('sha256', webhook.secret).update(body).digest('hex')
@@ -309,7 +318,7 @@ export async function processWebhookRetries(): Promise<{ ok: boolean; message: s
     const pendingRetries = db.prepare(`
       SELECT wd.id, wd.webhook_id, wd.event_type, wd.payload, wd.attempt,
              w.id as w_id, w.name as w_name, w.url as w_url, w.secret as w_secret,
-             w.events as w_events, w.enabled as w_enabled, w.consecutive_failures as w_consecutive_failures,
+             w.events as w_events, w.custom_headers as w_custom_headers, w.enabled as w_enabled, w.consecutive_failures as w_consecutive_failures,
              wd.workspace_id as wd_workspace_id
       FROM webhook_deliveries wd
       JOIN webhooks w ON w.id = wd.webhook_id AND w.workspace_id = wd.workspace_id AND w.enabled = 1
@@ -318,7 +327,7 @@ export async function processWebhookRetries(): Promise<{ ok: boolean; message: s
     `).all(now) as Array<{
       id: number; webhook_id: number; event_type: string; payload: string; attempt: number
       w_id: number; w_name: string; w_url: string; w_secret: string | null
-      w_events: string; w_enabled: number; w_consecutive_failures: number; wd_workspace_id: number
+      w_events: string; w_custom_headers: string | null; w_enabled: number; w_consecutive_failures: number; wd_workspace_id: number
     }>
 
     if (pendingRetries.length === 0) {
@@ -341,6 +350,7 @@ export async function processWebhookRetries(): Promise<{ ok: boolean; message: s
         url: row.w_url,
         secret: row.w_secret,
         events: row.w_events,
+        custom_headers: row.w_custom_headers,
         enabled: row.w_enabled,
         consecutive_failures: row.w_consecutive_failures,
         workspace_id: row.wd_workspace_id,
